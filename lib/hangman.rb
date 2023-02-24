@@ -13,6 +13,7 @@ class Game
     wordlist = dictionary.split.delete_if { |word| word.length < 5 || word.length > 12 }
     @secret_word = choose_word(wordlist)
     @player_input = Array.new(@secret_word.length, '_')
+    @count = 0
   end
 
   def choose_word(list)
@@ -22,10 +23,12 @@ class Game
   def check_word(guess)
     if @secret_word.include?(guess)
       indices = []
-      @secret_word.chars.each_index { |idx| indices.push[idx] if @secret_word == guess }
+      @secret_word.chars.each_index { |idx| indices.push(idx) if @secret_word[idx] == guess }
       storage(guess, indices)
     else
       p 'You guessed wrong!'
+      @count += 1
+      win_or_lose
     end
   end
 
@@ -35,10 +38,18 @@ class Game
   end
 
   def win_or_lose
-    if @player_input == @secret_word
-      p 'You win!'
-      endgame('win')
+    if @player_input.join == @secret_word
+      game_end('win')
+    elsif @count >= 8
+      game_end('lose')
+    else
+      false
     end
+  end
+
+  def game_end(w_l)
+    p "You #{w_l}! Would you like to try again?"
+    true
   end
 end
 
@@ -57,7 +68,9 @@ class Player
     p 'What is your guess?'
     @guess = gets.chomp.downcase
     validate_input(@guess)
-    @game.check_word(@guess)
+    gameover = @game.check_word(@guess)
+    @display.show_player_guess
+    game_finished(gameover)
   end
 
   def validate_input(guess)
@@ -75,6 +88,18 @@ class Player
     puts "\nWhat is the #{code}?"
     instance_variable_set("@#{code}", gets.chomp.downcase)
     validate_input(@guess)
+  end
+
+  def game_finished(gameover)
+    if gameover == true
+      if gets.chomp.downcase == 'yes'
+        Player.new
+      else
+        exit
+      end
+    else
+      guesses
+    end
   end
 end
 
