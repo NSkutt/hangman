@@ -2,6 +2,8 @@
 
 # Initialize various items, check win/loss conditions, save/load games
 class Game
+  attr_reader :player_input
+
   def initialize
     p 'Starting Game....'
 
@@ -20,14 +22,15 @@ class Game
   def check_word(guess)
     if @secret_word.include?(guess)
       indices = []
-      @secret_word.each_index { |idx| indices.push[idx] if @secret_word == guess }
+      @secret_word.chars.each_index { |idx| indices.push[idx] if @secret_word == guess }
       storage(guess, indices)
     else
       p 'You guessed wrong!'
+    end
   end
 
   def storage(guess, locations)
-    location.each { |idx| @player_input[idx] = guess }
+    locations.each { |idx| @player_input[idx] = guess }
     win_or_lose
   end
 
@@ -46,6 +49,7 @@ class Player
     @player_name = gets.chomp
     @valid_input = ('a'..'z').to_a
     @game = Game.new
+    @display = Display.new(@game)
     guesses
   end
 
@@ -71,6 +75,18 @@ class Player
     puts "\nWhat is the #{code}?"
     instance_variable_set("@#{code}", gets.chomp.downcase)
     validate_input(@guess)
+  end
+end
+
+# Shows the players how many turns they have left and how much they have guessed
+class Display
+  def initialize(game)
+    @game = game
+    show_player_guess
+  end
+
+  def show_player_guess
+    p @game.player_input
   end
 end
 Player.new
