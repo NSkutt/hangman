@@ -33,10 +33,10 @@ class Player
   end
 
   def guesses
-    puts "\nWhat is your guess?"
-    guess = gets.chomp.downcase
-    puts guess
-    @game.check_word(guess) if validate_input(guess)
+    p 'What is your guess?'
+    @guess = gets.chomp.downcase
+    validate_input(@guess)
+    @game.check_word(@guess)
   end
 
   def validate_input(guess)
@@ -46,8 +46,14 @@ class Player
       valid
     else
       print "Invalid guess, valid options are #{@valid_input}"
-      guesses
+      error('guess')
     end
+  end
+
+  def error(code)
+    puts "\nWhat is your #{code}?"
+    instance_variable_set("@#{code}", gets.chomp.downcase)
+    validate_input(@guess)
   end
 end
 Player.new
