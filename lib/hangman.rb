@@ -2,8 +2,6 @@
 
 # Initialize various items, check win/loss conditions, save/load games
 class Game
-  attr_reader :player_input
-
   def initialize
     p 'Starting Game....'
 
@@ -14,6 +12,8 @@ class Game
     @secret_word = choose_word(wordlist)
     @player_input = Array.new(@secret_word.length, '_')
     @count = 0
+    @display = Display.new
+    @display.show_player_guess(@player_input, @count)
   end
 
   def choose_word(list)
@@ -28,12 +28,17 @@ class Game
     else
       p 'You guessed wrong!'
       @count += 1
-      win_or_lose
+      display
     end
   end
 
   def storage(guess, locations)
     locations.each { |idx| @player_input[idx] = guess }
+    display
+  end
+
+  def display
+    @display.show_player_guess(@player_input, @count)
     win_or_lose
   end
 
@@ -60,7 +65,6 @@ class Player
     @player_name = gets.chomp
     @valid_input = ('a'..'z').to_a
     @game = Game.new
-    @display = Display.new(@game)
     guesses
   end
 
@@ -69,7 +73,6 @@ class Player
     @guess = gets.chomp.downcase
     validate_input(@guess)
     gameover = @game.check_word(@guess)
-    @display.show_player_guess
     game_finished(gameover)
   end
 
@@ -79,7 +82,7 @@ class Player
       @valid_input.delete_if { |letter| letter == guess }
       valid
     else
-      print "Invalid guess, valid options are #{@valid_input}"
+      print "Invalid guess, valid options are #{@valid_input.join(', ')}"
       error('guess')
     end
   end
@@ -105,13 +108,24 @@ end
 
 # Shows the players how many turns they have left and how much they have guessed
 class Display
-  def initialize(game)
-    @game = game
-    show_player_guess
-  end
-
-  def show_player_guess
-    p @game.player_input
+  def show_player_guess(current_word, count)
+    p current_word.join(' ')
+    display_hangman(count)
   end
 end
+
+def display_hangman(count)
+  while count.positive?
+
+    temp_store = []
+    hangman = [
+      "_____\n", "|   |\n",
+      ["|  ", ["\\", ["O"], [[["/"]]]], "\n"], ["|   ", [[["|"]]], "\n"],
+      ["|  ", [[[[["/"]]]], [[[[[" \\"]]]]]], "\n"], "|____"
+    ]
+    hangman.flatten(count).each { |layer| temp_store.push(layer) if layer.class != Array }
+    puts temp_store.join
+  end
+end
+
 Player.new
