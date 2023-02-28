@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Initialize various items, check win/loss conditions, save/load games
+# Handles valid user input
 class Game
   def initialize
     p 'Starting Game....'
@@ -45,7 +45,7 @@ class Game
   def win_or_lose
     if @player_input.join == @secret_word
       game_end('win')
-    elsif @count >= 8
+    elsif @count >= 7
       game_end('lose')
     else
       false
@@ -63,20 +63,25 @@ class Player
   def initialize
     p 'Player name?'
     @player_name = gets.chomp
+    validate_player_name(@player_name)
     @valid_input = ('a'..'z').to_a
     @game = Game.new
     guesses
   end
 
+  def validate_player_name(name)
+    error('player_name') if name[0] !~ /[a-z]/i
+  end
+
   def guesses
     p 'What is your guess?'
     @guess = gets.chomp.downcase
-    validate_input(@guess)
+    validate_guess(@guess)
     gameover = @game.check_word(@guess)
     game_finished(gameover)
   end
 
-  def validate_input(guess)
+  def validate_guess(guess)
     valid = @valid_input.include?(guess)
     if valid
       @valid_input.delete_if { |letter| letter == guess }
@@ -89,8 +94,8 @@ class Player
 
   def error(code)
     puts "\nWhat is the #{code}?"
-    instance_variable_set("@#{code}", gets.chomp.downcase)
-    validate_input(@guess)
+    new_input = instance_variable_set("@#{code}", gets.chomp.downcase)
+    send("validate_#{code}", new_input)
   end
 
   def game_finished(gameover)
@@ -115,16 +120,24 @@ class Display
 end
 
 def display_hangman(count)
-  while count.positive?
+  temp_store = []
+  hangman = [
+    "_____\n", "|   |\n",
+    ["|  ", ["\\", ["O"], [[["/"]]]], "\n"], ["|   ", [[["|"]]], "\n"],
+    ["|  ", [[[[["/"]]]], [[[[[" \\"]]]]]], "\n"], "|____"
+  ]
+  hangman.flatten(count).each { |layer| temp_store.push(layer) if layer.class != Array }
+  puts temp_store.join if count.positive?
+end
 
-    temp_store = []
-    hangman = [
-      "_____\n", "|   |\n",
-      ["|  ", ["\\", ["O"], [[["/"]]]], "\n"], ["|   ", [[["|"]]], "\n"],
-      ["|  ", [[[[["/"]]]], [[[[[" \\"]]]]]], "\n"], "|____"
-    ]
-    hangman.flatten(count).each { |layer| temp_store.push(layer) if layer.class != Array }
-    puts temp_store.join
+# Saves Games and Loads previous Saves
+class SaveLoad
+  def save_game
+
+  end
+
+  def load_game
+
   end
 end
 
