@@ -1,8 +1,10 @@
 # frozen_string_literal: true
 
+require 'yaml'
+
 # Handles valid user input
 class Game
-  def initialize
+  def initialize(save_class)
     p 'Starting Game....'
 
     return unless File.exist? 'google-10000-english-no-swears.txt'
@@ -14,6 +16,7 @@ class Game
     @count = 0
     @display = Display.new
     @display.show_player_guess(@player_input, @count)
+    @save = save_class
   end
 
   def choose_word(list)
@@ -56,6 +59,10 @@ class Game
     p "You #{w_l}! Would you like to try again?"
     true
   end
+
+  def save_data
+    @save.save_game(@secret_word, @player_input, @count)
+  end
 end
 
 # Interacts with the player
@@ -65,7 +72,8 @@ class Player
     @player_name = gets.chomp
     validate_player_name(@player_name)
     @valid_input = ('a'..'z').to_a
-    @game = Game.new
+    @save = Save.new
+    @game = Game.new(@save)
     guesses
   end
 
@@ -82,14 +90,20 @@ class Player
   end
 
   def validate_guess(guess)
+    return saving if guess.downcase == 'save'
+
     valid = @valid_input.include?(guess)
     if valid
       @valid_input.delete_if { |letter| letter == guess }
-      valid
     else
       print "Invalid guess, valid options are #{@valid_input.join(', ')}"
       error('guess')
     end
+  end
+
+  def saving
+    @save.make_file(@player_name)
+    @game.save_data
   end
 
   def error(code)
@@ -132,7 +146,22 @@ end
 
 # Saves Games and Loads previous Saves
 class SaveLoad
-  def save_game
+  def make_file(name)
+    while @file_name.nil?
+
+      @file_name = "#{name.downcase}#{Random.rand(10_000_000)}"
+      next unless File.exist?("saved/#{@file_name}")
+
+      puts 'Overwrite existing game?'
+      if gets.chomp.downcase != 'yes'
+        puts 'Did not save'
+      else
+        puts 'Saving game...'
+      end
+    end
+  end
+
+  def save_game(word, guess_state, guesses_left)
 
   end
 
