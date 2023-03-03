@@ -61,7 +61,7 @@ class Game
   end
 
   def game_end(w_l)
-    p "You #{w_l}! Would you like to try again?"
+    p "You #{w_l}! Would you like to try again? (yes/no)"
     @save.delete_file unless @save.load.nil?
     true
   end
@@ -81,7 +81,7 @@ end
 class Player
   def initialize
     @save = SaveLoad.new
-    p 'Would you like to load a previous game?'
+    p 'Would you like to load a previous game? (yes/no)'
     ans = gets.chomp
     data = loading if ans.downcase == 'yes'
     @save.load.nil? ? new_game : load(data)
@@ -191,7 +191,7 @@ class SaveLoad
     @file_name = "saves/#{name.downcase}#{Random.rand(10_000_000)}.yaml"
     return unless File.exist?(@file_name)
 
-    puts 'Overwrite existing game?'
+    puts 'Overwrite existing game? (yes/no)'
     if gets.chomp.downcase != 'yes'
       puts 'Did not save'
     else
