@@ -4,19 +4,24 @@ require 'yaml'
 
 # Handles valid user input
 class Game
-  def initialize(save_class)
-    p 'Starting Game....'
-
+  def initialize(save_class, data = nil)
     return unless File.exist? 'google-10000-english-no-swears.txt'
 
+    p 'Starting Game....'
+    @save = save_class
+
+    data.nil? ? set_variables : load_data(data)
+
+    @display = Display.new
+    @display.show_player_guess(@player_input, @count)
+  end
+
+  def set_variables
     dictionary = File.read('google-10000-english-no-swears.txt')
     wordlist = dictionary.split.delete_if { |word| word.length < 5 || word.length > 12 }
     @secret_word = choose_word(wordlist)
     @player_input = Array.new(@secret_word.length, '_')
     @count = 0
-    @display = Display.new
-    @display.show_player_guess(@player_input, @count)
-    @save = save_class
   end
 
   def choose_word(list)
@@ -57,24 +62,51 @@ class Game
 
   def game_end(w_l)
     p "You #{w_l}! Would you like to try again?"
+    @save.delete_file unless @save.load.nil?
     true
   end
 
-  def save_data
-    @save.save_game(@secret_word, @player_input, @count)
+  def save_data(valid_input)
+    @save.save_game(@secret_word, @player_input, @count, valid_input)
+  end
+
+  def load_data(data)
+    @secret_word = data[:word]
+    @player_input = data[:guess_state]
+    @count = data[:guesses_left]
   end
 end
 
 # Interacts with the player
 class Player
   def initialize
+    @save = SaveLoad.new
+    p 'Would you like to load a previous game?'
+    ans = gets.chomp
+    data = loading if ans.downcase == 'yes'
+    @save.load.nil? ? new_game : load(data)
+
+    guesses
+  end
+
+  def new_game
     p 'Player name?'
     @player_name = gets.chomp
     validate_player_name(@player_name)
     @valid_input = ('a'..'z').to_a
-    @save = Save.new
     @game = Game.new(@save)
-    guesses
+  end
+
+  def loading
+    puts 'What is the file name?'
+    file = gets.chomp
+    @save.load_game(file)
+  end
+
+  def load(data)
+    @player_name = data[:player_name]
+    @valid_input = data[:options]
+    @game = Game.new(@save, data)
   end
 
   def validate_player_name(name)
@@ -102,8 +134,9 @@ class Player
   end
 
   def saving
-    @save.make_file(@player_name)
-    @game.save_data
+    @save.verify_file(@player_name)
+    @game.save_data(@valid_input)
+    exit
   end
 
   def error(code)
@@ -139,34 +172,56 @@ def display_hangman(count)
     "_____\n", "|   |\n",
     ["|  ", ["\\", ["O"], [[["/"]]]], "\n"], ["|   ", [[["|"]]], "\n"],
     ["|  ", [[[[["/"]]]], [[[[[" \\"]]]]]], "\n"], "|____"
-  ]
+  ] # Using single quotes does not work in this array, even when it would be seemingly valid
   hangman.flatten(count).each { |layer| temp_store.push(layer) if layer.class != Array }
   puts temp_store.join if count.positive?
 end
 
 # Saves Games and Loads previous Saves
 class SaveLoad
+  attr_reader :load
+
+  def verify_file(name)
+    @name = name
+    Dir.mkdir('saves') unless Dir.exist?('saves')
+    make_file(name) if @file_name.nil?
+  end
+
   def make_file(name)
-    while @file_name.nil?
+    @file_name = "saves/#{name.downcase}#{Random.rand(10_000_000)}.yaml"
+    return unless File.exist?(@file_name)
 
-      @file_name = "#{name.downcase}#{Random.rand(10_000_000)}"
-      next unless File.exist?("saved/#{@file_name}")
-
-      puts 'Overwrite existing game?'
-      if gets.chomp.downcase != 'yes'
-        puts 'Did not save'
-      else
-        puts 'Saving game...'
-      end
+    puts 'Overwrite existing game?'
+    if gets.chomp.downcase != 'yes'
+      puts 'Did not save'
+    else
+      puts 'Saving game...'
     end
   end
 
-  def save_game(word, guess_state, guesses_left)
-
+  def save_game(word, guess_state, guesses_left, options)
+    data = {
+      player_name: @name,
+      word: word,
+      guess_state: guess_state,
+      guesses_left: guesses_left,
+      options: options
+    }
+    File.open(@file_name, 'w') { |file| file.puts YAML.dump(data) }
   end
 
-  def load_game
+  def load_game(file_name)
+    @load = true
+    @file_name = file_name.rstrip
+    @file_name.prepend('saves/') if @file_name[0, 6] != 'saves/'
+    yaml_file = File.open(@file_name)
+    ruby_data = YAML.load(yaml_file)
+    yaml_file.close
+    ruby_data
+  end
 
+  def delete_file
+    File.delete(@file_name) if File.exist? @file_name
   end
 end
 
